@@ -53,14 +53,25 @@ with st.sidebar:
 
 # --- 메인 로직 ---
 if df is not None and 'generate_btn' in locals() and generate_btn:
-    # 1. 해당 시즌 모든 선수의 '마지막 기록' 추출 (백분위 기준)
-    # 날짜 기준 정렬 후 가장 마지막 행만 남김
+    # 1. 해당 시즌 모든 선수의 '마지막 기록' 추출
     season_final = df.sort_values('날짜').groupby('선수명').tail(1)
     
-    # 2. 선택한 선수의 최종 성적
-    player_data = season_final[season_final['선수명'] == selected_player].iloc[0]
+    # --- 타석 3 이상인 선수만 필터링 (기준 수정) ---
+    if '타석' in season_final.columns:
+        season_final = season_final[season_final['타석'] >= 3]
+    elif 'PA' in season_final.columns:
+        season_final = season_final[season_final['PA'] >= 3]
+    # ----------------------------------------------
     
-    st.header(f"📊 {selected_player} ({player_data['팀']}) - {selected_year} Season")
+    # 2. 선택한 선수의 최종 성적 확인
+    player_results = season_final[season_final['선수명'] == selected_player]
+    
+    if player_results.empty:
+        # 타석 3 미만인 경우 경고 메시지
+        st.warning(f"선택하신 {selected_player} 선수는 해당 시즌 타석이 3 미만이라 순위 계산에서 제외되었습니다.")
+    else:
+        player_data = player_results.iloc[0]
+        st.header(f"📊 {selected_player} ({player_data['팀']}) - {selected_year} Season")
     
     # 3. 요청하신 13가지 핵심 지표 설정
     metrics = {
