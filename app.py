@@ -144,17 +144,35 @@ if df is not None and 'generate_btn' in locals() and generate_btn:
                         total_for_rank = len(all_values)
                         percentile = percentileofscore(all_values, val, kind='rank')
 
-                    # 안전장치 및 포맷팅
-                    if not np.isfinite(percentile): percentile = 0
+                    # --- [여기서부터 교체 시작] ---
+                    # 1. 안전장치 및 정수화
+                    if not np.isfinite(percentile): 
+                        percentile = 0
                     safe_percentile = int(round(percentile))
-                    color = "#e74c3c" if safe_percentile > 50 else "#3498db"
-                    
-                    if pd.isnull(val): display_val = "N/A"
-                    elif col_name in ["안타", "홈런", "고의사구"]: display_val = f"{int(val)}"
-                    else: display_val = f"{val:.3f}"
+
+                    # 2. 백분위에 따른 5단계 색상 로직 (숫자가 높을수록 진한 빨강)
+                    if safe_percentile >= 90:
+                        color = "#8b0000"  # 최상위: 아주 진한 빨강
+                    elif safe_percentile >= 70:
+                        color = "#e74c3c"  # 상위: 일반 빨강
+                    elif safe_percentile >= 40:
+                        color = "#95a5a6"  # 중권: 회색 (평균 수준)
+                    elif safe_percentile >= 20:
+                        color = "#3498db"  # 하위: 일반 파랑
+                    else:
+                        color = "#2c3e50"  # 최하위: 아주 진한 남색
+
+                    # 3. 표시 값 포맷팅
+                    if pd.isnull(val): 
+                        display_val = "N/A"
+                    elif col_name in ["안타", "홈런", "고의사구"]: 
+                        display_val = f"{int(val)}"
+                    else: 
+                        display_val = f"{val:.3f}"
                     
                     rank_text = f"순위: {int(rank_val)}위 / {total_for_rank}명"
 
+                    # 4. 시각화 출력 (디자인 업그레이드)
                     st.markdown(f"""
                         <div style="margin-bottom: 22px;">
                             <div style="display: flex; justify-content: space-between; margin-bottom: 4px;">
@@ -163,13 +181,14 @@ if df is not None and 'generate_btn' in locals() and generate_btn:
                                     <b>{display_val}</b>
                                 </span>
                             </div>
-                            <div style="background-color: #eee; border-radius: 10px; height: 14px; width: 100%;">
-                                <div style="background-color: {color}; width: {safe_percentile}%; height: 14px; border-radius: 10px; text-align: right; padding-right: 8px; color: white; font-size: 10px; line-height: 14px;">
-                                    {safe_percentile}
+                            <div style="background-color: #f0f0f0; border-radius: 10px; height: 16px; width: 100%; border: 0.5px solid #ddd;">
+                                <div style="background-color: {color}; width: {safe_percentile}%; height: 16px; border-radius: 10px; text-align: right; padding-right: 8px; color: white; font-size: 11px; line-height: 16px; font-weight: bold;">
+                                    {safe_percentile if safe_percentile > 10 else ""}
                                 </div>
                             </div>
                         </div>
                     """, unsafe_allow_html=True)
+                    # --- [교체 끝] ---
 
     st.info("💡 비율 지표(타율~wRC+)는 규정타석 미달 시 하위 순위로 자동 배정됩니다.")
 
