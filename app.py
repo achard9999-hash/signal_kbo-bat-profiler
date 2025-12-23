@@ -24,7 +24,7 @@ def load_yearly_data(year):
 
 # --- UI 레이아웃 ---
 st.title("⚾ KBO Bat Profiler")
-st.markdown("Developed by Byeongwoo")
+st.markdown("Developed by yyd")
 
 # 사이드바 설정
 with st.sidebar:
