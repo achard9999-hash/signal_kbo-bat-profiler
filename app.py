@@ -102,32 +102,40 @@ if df is not None and 'generate_btn' in locals() and generate_btn:
                 all_values = season_final[col_name].dropna()
                 val = player_data[col_name]
                 
-                # 2. 백분위 계산
-                if len(all_values) > 0:
-                    percentile = percentileofscore(all_values, val, kind='rank')
-                    
-                    # 3. 순위 계산 (방식 변경: 더 안전한 방식)
-                    # 전체 값들 중에서 현재 선수의 값보다 큰 값들의 개수 + 1
-                    rank_val = (all_values > val).sum() + 1
-                    total_players = len(all_values)
+                # 2. 백분위 및 순위 계산 (안전장치 강화)
+                if len(all_values) > 0 and pd.notnull(val):
+                    try:
+                        percentile = percentileofscore(all_values, val, kind='rank')
+                        rank_val = (all_values > val).sum() + 1
+                        total_players = len(all_values)
+                        
+                        # 계산된 percentile이 NaN이거나 무한대인 경우 처리
+                        if not np.isfinite(percentile):
+                            percentile = 0
+                    except:
+                        percentile = 0
+                        rank_val = 0
+                        total_players = 0
                 else:
                     percentile = 0
                     rank_val = 0
                     total_players = 0
                 
-                # 색상 결정
+                # 색상 및 수치 포맷팅
                 color = "#e74c3c" if percentile > 50 else "#3498db"
                 
-                # 수치 포맷팅
-                if isinstance(val, (int, np.integer)):
+                # 표시 값 설정
+                if pd.isnull(val):
+                    display_val = "N/A"
+                elif isinstance(val, (int, np.integer)):
                     display_val = f"{int(val)}"
-                elif isinstance(val, (float, np.float64)):
-                    display_val = f"{val:.3f}"
                 else:
-                    display_val = str(val)
+                    display_val = f"{val:.3f}"
                 
-                # 4. HTML 출력 (에러 방지를 위해 변수를 미리 문자열로 변환)
                 rank_text = f"순위: {int(rank_val)}위 / {total_players}명"
+                
+                # {int(percentile)} 부분에서 에러가 나지 않도록 사전에 정수화
+                safe_percentile = int(round(percentile))
                 
                 st.markdown(f"""
                     <div style="margin-bottom: 22px;">
@@ -138,8 +146,8 @@ if df is not None and 'generate_btn' in locals() and generate_btn:
                             </span>
                         </div>
                         <div style="background-color: #eee; border-radius: 10px; height: 14px; width: 100%;">
-                            <div style="background-color: {color}; width: {percentile}%; height: 14px; border-radius: 10px; text-align: right; padding-right: 8px; color: white; font-size: 10px; line-height: 14px;">
-                                {int(percentile)}
+                            <div style="background-color: {color}; width: {safe_percentile}%; height: 14px; border-radius: 10px; text-align: right; padding-right: 8px; color: white; font-size: 10px; line-height: 14px;">
+                                {safe_percentile}
                             </div>
                         </div>
                     </div>
