@@ -82,30 +82,47 @@ if df is not None and 'generate_btn' in locals() and generate_btn:
     # 4. 시각화 (3열 배치)
     cols = st.columns(3)
     
+# ... (상단 생략) ...
+    
     for i, (label, col_name) in enumerate(metrics.items()):
         if col_name in season_final.columns:
             with cols[i % 3]:
-                all_values = season_final[col_name].dropna().values
+                # 1. 해당 지표의 모든 값 (NaN 제외)
+                all_values = season_final[col_name].dropna()
                 val = player_data[col_name]
                 
-                # 백분위 (높을수록 좋음)
-                percentile = percentileofscore(all_values, val, kind='rank')
+                # 2. 백분위 계산
+                if len(all_values) > 0:
+                    percentile = percentileofscore(all_values, val, kind='rank')
+                    
+                    # 3. 순위 계산 (방식 변경: 더 안전한 방식)
+                    # 전체 값들 중에서 현재 선수의 값보다 큰 값들의 개수 + 1
+                    rank_val = (all_values > val).sum() + 1
+                    total_players = len(all_values)
+                else:
+                    percentile = 0
+                    rank_val = 0
+                    total_players = 0
                 
-                # 순위 (내림차순 정렬 기준)
-                rank = season_final[col_name].rank(ascending=False, method='min').loc[player_data.name]
-                total_players = len(all_values)
-                
-                # 색상 결정 (백분위 50 기준)
+                # 색상 결정
                 color = "#e74c3c" if percentile > 50 else "#3498db"
                 
-                # 수치 포맷팅 (정수/실수 구분)
-                display_val = f"{val:.3f}" if isinstance(val, float) else f"{int(val)}"
+                # 수치 포맷팅
+                if isinstance(val, (int, np.integer)):
+                    display_val = f"{int(val)}"
+                elif isinstance(val, (float, np.float64)):
+                    display_val = f"{val:.3f}"
+                else:
+                    display_val = str(val)
+                
+                # 4. HTML 출력 (에러 방지를 위해 변수를 미리 문자열로 변환)
+                rank_text = f"순위: {int(rank_val)}위 / {total_players}명"
                 
                 st.markdown(f"""
                     <div style="margin-bottom: 22px;">
                         <div style="display: flex; justify-content: space-between; margin-bottom: 4px;">
                             <span style="font-weight: bold; font-size: 14px;">{label}</span>
-                            <span style="font-size: 14px; cursor: help;" title="순위: {int(rank)}위 / {total_players}명">
+                            <span style="font-size: 14px; cursor: help;" title="{rank_text}">
                                 <b>{display_val}</b>
                             </span>
                         </div>
